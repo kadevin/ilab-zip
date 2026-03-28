@@ -31,6 +31,12 @@ targets:
       - script: |
           cp "${PROJECT_DIR}/iLab-zip/Resources/7zz" "${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/7zz"
           chmod 755 "${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/7zz"
+          # 复制传统 icns 图标（CI 环境回退，macOS 15 不支持 .icon 格式）
+          ICNS_SRC="${PROJECT_DIR}/iLab-zip/Resources/AppIcon.icns"
+          ICNS_DST="${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/AppIcon.icns"
+          if [ -f "$ICNS_SRC" ] && [ ! -f "$ICNS_DST" ]; then
+            cp "$ICNS_SRC" "$ICNS_DST"
+          fi
         name: "Copy Resources"
         basedOnDependencyAnalysis: false
     dependencies:
