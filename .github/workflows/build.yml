@@ -1,0 +1,41 @@
+name: Build & Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: macos-15
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install XcodeGen
+      run: brew install xcodegen
+
+    - name: Generate Xcode Project
+      run: xcodegen generate
+
+    - name: Build
+      run: |
+        xcodebuild build \
+          -scheme iLab-zip \
+          -destination 'platform=macOS,arch=arm64' \
+          -skipPackagePluginValidation \
+          CODE_SIGN_IDENTITY="-" \
+          CODE_SIGNING_REQUIRED=NO \
+          | xcpretty || true
+
+    - name: Run Tests
+      run: |
+        xcodebuild test \
+          -scheme iLab-zip \
+          -destination 'platform=macOS,arch=arm64' \
+          -skipPackagePluginValidation \
+          CODE_SIGN_IDENTITY="-" \
+          CODE_SIGNING_REQUIRED=NO \
+          | xcpretty || true

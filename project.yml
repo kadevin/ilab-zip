@@ -1,0 +1,218 @@
+name: iLab-zip
+options:
+  bundleIdPrefix: com.ilab
+  deploymentTarget:
+    macOS: "13.0"
+  xcodeVersion: "15.0"
+  defaultConfig: Debug
+  groupSortPosition: top
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MACOSX_DEPLOYMENT_TARGET: "13.0"
+
+packages:
+  GRDB:
+    url: https://github.com/groue/GRDB.swift
+    from: "6.24.0"
+
+targets:
+  iLab-zip:
+    type: application
+    platform: macOS
+    sources:
+      - path: iLab-zip
+        excludes:
+          - Resources/7zz
+      - path: iLab-zip/AppIcon.icon
+    postCompileScripts:
+      - script: |
+          cp "${PROJECT_DIR}/iLab-zip/Resources/7zz" "${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/7zz"
+          chmod 755 "${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/7zz"
+        name: "Copy Resources"
+        basedOnDependencyAnalysis: false
+    dependencies:
+      - package: GRDB
+      - target: iLab-zipXPC
+        embed: true
+      - target: iLab-zipFinderExtension
+        embed: true
+        codeSign: true
+    settings:
+      base:
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+        PRODUCT_BUNDLE_IDENTIFIER: com.ilab.iLab-zip
+        PRODUCT_NAME: 如压
+        INFOPLIST_KEY_CFBundleDisplayName: 如压
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_NSMainNibFile: ""
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: 1
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    info:
+      path: iLab-zip/Info.plist
+      properties:
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: 7-Zip Archive
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Default
+            LSItemContentTypes:
+              - org.7-zip.7-zip-archive
+            CFBundleTypeExtensions:
+              - "7z"
+          - CFBundleTypeName: ZIP Archive
+            CFBundleTypeRole: Editor
+            LSHandlerRank: Default
+            LSItemContentTypes:
+              - public.zip-archive
+            CFBundleTypeExtensions:
+              - zip
+          - CFBundleTypeName: RAR Archive
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Default
+            CFBundleTypeExtensions:
+              - rar
+          - CFBundleTypeName: TAR Archive
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Default
+            LSItemContentTypes:
+              - public.tar-archive
+            CFBundleTypeExtensions:
+              - tar
+          - CFBundleTypeName: GZip Archive
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Default
+            LSItemContentTypes:
+              - org.gnu.gnu-zip-archive
+            CFBundleTypeExtensions:
+              - gz
+          - CFBundleTypeName: BZip2 Archive
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Default
+            CFBundleTypeExtensions:
+              - bz2
+          - CFBundleTypeName: XZ Archive
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Default
+            CFBundleTypeExtensions:
+              - xz
+          - CFBundleTypeName: ISO Image
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Default
+            CFBundleTypeExtensions:
+              - iso
+          - CFBundleTypeName: DMG Image
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Default
+            CFBundleTypeExtensions:
+              - dmg
+          - CFBundleTypeName: CAB Archive
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Default
+            CFBundleTypeExtensions:
+              - cab
+          - CFBundleTypeName: ARJ Archive
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Default
+            CFBundleTypeExtensions:
+              - arj
+          - CFBundleTypeName: LZH Archive
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Default
+            CFBundleTypeExtensions:
+              - lzh
+          - CFBundleTypeName: WIM Image
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Default
+            CFBundleTypeExtensions:
+              - wim
+
+  iLab-zipFinderExtension:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: iLab-zipFinderExtension
+      - path: iLab-zipXPC/ArchiveXPCProtocol.swift
+    dependencies: []
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ilab.iLab-zip.FinderSync
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+        SKIP_INSTALL: YES
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: 1
+    info:
+      path: iLab-zipFinderExtension/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.FinderSync
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).FinderSyncExtension
+
+  iLab-zipXPC:
+    type: xpc-service
+    platform: macOS
+    sources:
+      - path: iLab-zipXPC
+    dependencies: []
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ilab.iLab-zip.XPCService
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+        SKIP_INSTALL: YES
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: 1
+
+  iLab-zipTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: iLab-zipTests
+    dependencies:
+      - target: iLab-zip
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ilab.iLab-zipTests
+        GENERATE_INFOPLIST_FILE: YES
+
+  iLab-zipUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources:
+      - path: iLab-zipUITests
+    dependencies:
+      - target: iLab-zip
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ilab.iLab-zipUITests
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  iLab-zip:
+    build:
+      targets:
+        iLab-zip: all
+        iLab-zipFinderExtension: all
+        iLab-zipXPC: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - iLab-zipTests
+        - iLab-zipUITests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release

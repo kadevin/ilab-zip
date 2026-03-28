@@ -1,0 +1,86 @@
+/* iLab-zip — English */
+
+// App name
+"app.name" = "iLab-zip";
+
+// Toolbar
+"toolbar.extract" = "Extract";
+"toolbar.extractTo" = "Extract to...";
+"toolbar.compress" = "Compress";
+
+// Search
+"search.prompt" = "Search files...";
+
+// Columns
+"column.name" = "Name";
+"column.size" = "Size";
+"column.compressedSize" = "Packed";
+"column.modified" = "Modified";
+"column.type" = "Type";
+
+// Types
+"type.folder" = "Folder";
+"type.file" = "File";
+
+// Status bar
+"status.items" = "%d items";
+"status.size" = "Total %@";
+"status.compressedSize" = "(Packed %@)";
+"status.encrypted" = "AES-256 Encrypted";
+
+// Password
+"password.title" = "Enter Password";
+"password.description" = "This archive is encrypted. Please enter the password to extract.";
+"password.placeholder" = "Password";
+"password.saveToVault" = "Save to Password Vault";
+"password.label" = "Label (optional)";
+
+// Compression
+"compress.title" = "Create Archive";
+"compress.outputName" = "Filename";
+"compress.format" = "Format";
+"compress.level" = "Compression Level";
+"compress.encryption" = "Encryption";
+"compress.password" = "Password (empty for no encryption)";
+"compress.encryptFilenames" = "Encrypt filenames";
+"compress.volume" = "Volumes";
+"compress.volumeSize" = "Volume Size";
+"compress.start" = "Start Compression";
+
+// Progress
+"progress.remaining" = "Time remaining: %@";
+
+// Preferences
+"preferences.general" = "General";
+"preferences.vault" = "Password Vault";
+
+// Settings
+"settings.language" = "Language";
+"settings.language.system" = "System Default";
+
+// Vault
+"vault.noLabel" = "No label";
+"vault.count" = "%d passwords";
+"vault.addPassword" = "Add Password";
+"vault.password" = "Password";
+"vault.label" = "Label (optional)";
+
+// Buttons
+"button.ok" = "OK";
+"button.cancel" = "Cancel";
+"button.add" = "Add";
+"button.choose" = "Choose";
+"button.extract" = "Extract";
+
+// Errors
+"error.title" = "Error";
+"error.wrongPassword" = "Wrong password. Please try again.";
+"error.corruptedFile" = "The file is corrupted and cannot be extracted.";
+"error.insufficientDisk" = "Not enough disk space.";
+"error.volumeMissing" = "Missing volume files: %@";
+"error.unsupportedFormat" = "Unsupported archive format.";
+"error.engineNotFound" = "Compression engine not found. Please reinstall the application.";
+"error.cancelled" = "Operation cancelled.";
+
+// Loading
+"loading" = "Loading...";

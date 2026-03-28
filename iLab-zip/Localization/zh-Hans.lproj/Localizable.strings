@@ -1,0 +1,86 @@
+/* 如压 — 简体中文 */
+
+// 应用名称
+"app.name" = "如压";
+
+// 工具栏
+"toolbar.extract" = "解压";
+"toolbar.extractTo" = "解压到...";
+"toolbar.compress" = "压缩";
+
+// 搜索
+"search.prompt" = "搜索文件...";
+
+// 表头
+"column.name" = "名称";
+"column.size" = "大小";
+"column.compressedSize" = "压缩后";
+"column.modified" = "修改日期";
+"column.type" = "类型";
+
+// 类型
+"type.folder" = "文件夹";
+"type.file" = "文件";
+
+// 状态栏
+"status.items" = "%d 个对象";
+"status.size" = "共 %@";
+"status.compressedSize" = "（压缩后 %@）";
+"status.encrypted" = "AES-256 加密";
+
+// 密码
+"password.title" = "输入密码";
+"password.description" = "该压缩包已加密，请输入密码以解压。";
+"password.placeholder" = "密码";
+"password.saveToVault" = "保存到密码库";
+"password.label" = "备注（可选）";
+
+// 压缩
+"compress.title" = "创建压缩包";
+"compress.outputName" = "文件名";
+"compress.format" = "格式";
+"compress.level" = "压缩等级";
+"compress.encryption" = "加密";
+"compress.password" = "密码（留空则不加密）";
+"compress.encryptFilenames" = "加密文件名";
+"compress.volume" = "分卷";
+"compress.volumeSize" = "分卷大小";
+"compress.start" = "开始压缩";
+
+// 进度
+"progress.remaining" = "剩余时间：%@";
+
+// 偏好设置
+"preferences.general" = "通用";
+"preferences.vault" = "密码库";
+
+// 设置
+"settings.language" = "语言";
+"settings.language.system" = "跟随系统";
+
+// 密码库
+"vault.noLabel" = "无备注";
+"vault.count" = "共 %d 个密码";
+"vault.addPassword" = "添加密码";
+"vault.password" = "密码";
+"vault.label" = "备注（可选）";
+
+// 按钮
+"button.ok" = "确定";
+"button.cancel" = "取消";
+"button.add" = "添加";
+"button.choose" = "选择";
+"button.extract" = "解压";
+
+// 错误
+"error.title" = "错误";
+"error.wrongPassword" = "密码错误，请重试。";
+"error.corruptedFile" = "文件已损坏，无法解压。";
+"error.insufficientDisk" = "磁盘空间不足。";
+"error.volumeMissing" = "缺少分卷文件：%@";
+"error.unsupportedFormat" = "不支持的压缩格式。";
+"error.engineNotFound" = "压缩引擎未找到，请重新安装应用。";
+"error.cancelled" = "操作已取消。";
+
+// 加载
+"loading" = "加载中...";
