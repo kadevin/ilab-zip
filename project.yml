@@ -132,6 +132,10 @@ targets:
             LSHandlerRank: Default
             CFBundleTypeExtensions:
               - wim
+        CFBundleURLTypes:
+          - CFBundleURLName: iLab-zip Actions
+            CFBundleURLSchemes:
+              - ilabzip
 
   iLab-zipFinderExtension:
     type: app-extension
@@ -139,22 +143,22 @@ targets:
     sources:
       - path: iLab-zipFinderExtension
       - path: iLab-zipXPC/ArchiveXPCProtocol.swift
-    dependencies: []
+    dependencies:
+      - sdk: FinderSync.framework
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ilab.iLab-zip.FinderSync
-        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_NAME: iLab-zipFinderExtension
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: iLab-zipFinderExtension/Info.plist
+        CODE_SIGN_ENTITLEMENTS: iLab-zipFinderExtension/iLab-zipFinderExtension.entitlements
         CODE_SIGN_IDENTITY: "-"
         CODE_SIGN_STYLE: Manual
         SKIP_INSTALL: YES
         MARKETING_VERSION: "1.0.0"
         CURRENT_PROJECT_VERSION: 1
-    info:
-      path: iLab-zipFinderExtension/Info.plist
-      properties:
-        NSExtension:
-          NSExtensionPointIdentifier: com.apple.FinderSync
-          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).FinderSyncExtension
+        ENABLE_APP_SANDBOX: YES
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks @executable_path/../../../../Frameworks"
 
   iLab-zipXPC:
     type: xpc-service

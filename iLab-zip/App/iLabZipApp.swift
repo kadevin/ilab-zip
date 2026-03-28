@@ -58,11 +58,92 @@ final class AppState: ObservableObject {
         if engine == nil {
             print("[iLab-zip] WARNING: No 7zz engine found!")
         }
+        
+        // 监听 Finder 扩展的操作通知
+        NotificationCenter.default.addObserver(self, selector: #selector(handleExtract(_:)), name: .extractArchive, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(handleCompress(_:)), name: .compressFiles, object: nil)
     }
     
     func openArchive(url: URL) {
         pendingArchiveURL = url
-        // 同时通过通知通知已有的 ArchiveWindowView
         NotificationCenter.default.post(name: .openArchive, object: url)
     }
+    
+    // MARK: - Finder 扩展操作处理
+    
+    @objc private func handleExtract(_ notification: Notification) {
+        guard let engine = engine,
+              let userInfo = notification.userInfo,
+              let archiveURL = userInfo["archiveURL"] as? URL,
+              let destinationURL = userInfo["destinationURL"] as? URL else {
+            print("[iLab-zip] handleExtract: missing engine or parameters")
+            return
+        }
+        
+        print("[iLab-zip] Extracting \(archiveURL.lastPathComponent) to \(destinationURL.path)")
+        
+        Task {
+            let stream = engine.extract(archive: archiveURL, to: destinationURL)
+            var lastProgress: ArchiveProgress?
+            for await progress in stream {
+                lastProgress = progress
+            }
+            
+            await MainActor.run {
+                if case .failed(let err) = lastProgress?.phase {
+                    self.showNotification(title: "解压失败", body: err.localizedDescription)
+                } else {
+                    self.showNotification(title: "解压完成", body: archiveURL.lastPathComponent)
+                    NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: destinationURL.path)
+                }
+            }
+        }
+    }
+    
+    @objc private func handleCompress(_ notification: Notification) {
+        guard let engine = engine,
+              let userInfo = notification.userInfo,
+              let files = userInfo["files"] as? [URL],
+              let format = userInfo["format"] as? String,
+              let firstFile = files.first else {
+            print("[iLab-zip] handleCompress: missing engine or parameters")
+            return
+        }
+        
+        let archiveFormat: ArchiveFormat = format == "7z" ? .sevenZip : .zip
+        let ext = format == "7z" ? "7z" : "zip"
+        let outputName: String
+        if files.count == 1 {
+            outputName = firstFile.deletingPathExtension().lastPathComponent + ".\(ext)"
+        } else {
+            outputName = "Archive.\(ext)"
+        }
+        let outputURL = firstFile.deletingLastPathComponent().appendingPathComponent(outputName)
+        
+        print("[iLab-zip] Compressing \(files.map { $0.lastPathComponent }) to \(outputURL.path)")
+        
+        let options = CompressionOptions(format: archiveFormat, level: 5)
+        
+        Task {
+            let stream = engine.compress(files: files, to: outputURL, options: options)
+            var lastProgress: ArchiveProgress?
+            for await progress in stream {
+                lastProgress = progress
+            }
+            
+            await MainActor.run {
+                if case .failed(let err) = lastProgress?.phase {
+                    self.showNotification(title: "压缩失败", body: err.localizedDescription)
+                } else {
+                    self.showNotification(title: "压缩完成", body: outputURL.lastPathComponent)
+                    NSWorkspace.shared.selectFile(outputURL.path, inFileViewerRootedAtPath: outputURL.deletingLastPathComponent().path)
+                }
+            }
+        }
+    }
+    
+    private func showNotification(title: String, body: String) {
+        print("[iLab-zip] \(title): \(body)")
+    }
 }
+

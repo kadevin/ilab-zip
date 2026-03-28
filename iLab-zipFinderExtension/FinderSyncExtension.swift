@@ -5,44 +5,49 @@ class FinderSyncExtension: FIFinderSync {
     
     override init() {
         super.init()
-        // 监控用户主目录
-        let homeDir = URL(fileURLWithPath: NSHomeDirectory())
-        FIFinderSyncController.default().directoryURLs = [homeDir]
+        NSLog("[iLab-zip FinderSync] Extension initializing...")
+        // 监控所有目录（根目录），确保 Finder 中任何位置右键都能触发
+        FIFinderSyncController.default().directoryURLs = [URL(fileURLWithPath: "/")]
+        NSLog("[iLab-zip FinderSync] Monitoring directory: /")
     }
     
     // MARK: - 右键菜单
     
     override func menu(for menuKind: FIMenuKind) -> NSMenu {
-        let menu = NSMenu(title: "iLab-zip")
+        NSLog("[iLab-zip FinderSync] menu(for:) called, menuKind=\(menuKind.rawValue)")
+        let menu = NSMenu(title: "如压")
         
         switch menuKind {
         case .contextualMenuForItems:
-            // 根据选中文件类型决定显示哪些菜单项
             let items = FIFinderSyncController.default().selectedItemURLs() ?? []
+            NSLog("[iLab-zip FinderSync] Selected items: \(items.map { $0.lastPathComponent })")
             let hasArchives = items.contains { isArchiveFile($0) }
             
             if hasArchives {
-                menu.addItem(withTitle: NSLocalizedString("toolbar.extract", comment: "解压到当前文件夹"),
-                           action: #selector(extractHere(_:)),
-                           keyEquivalent: "")
-                menu.addItem(withTitle: NSLocalizedString("toolbar.extractTo", comment: "解压到指定位置..."),
-                           action: #selector(extractTo(_:)),
-                           keyEquivalent: "")
+                let extractItem = NSMenuItem(title: "解压到当前文件夹", action: #selector(extractHere(_:)), keyEquivalent: "")
+                extractItem.target = self
+                menu.addItem(extractItem)
+                
+                let extractToItem = NSMenuItem(title: "解压到指定位置...", action: #selector(extractTo(_:)), keyEquivalent: "")
+                extractToItem.target = self
+                menu.addItem(extractToItem)
+                
+                menu.addItem(NSMenuItem.separator())
             }
             
-            menu.addItem(NSMenuItem.separator())
+            let compress7zItem = NSMenuItem(title: "压缩到 7z", action: #selector(compressTo7z(_:)), keyEquivalent: "")
+            compress7zItem.target = self
+            menu.addItem(compress7zItem)
             
-            menu.addItem(withTitle: "压缩到 7z",
-                       action: #selector(compressTo7z(_:)),
-                       keyEquivalent: "")
-            menu.addItem(withTitle: "压缩到 ZIP",
-                       action: #selector(compressToZip(_:)),
-                       keyEquivalent: "")
+            let compressZipItem = NSMenuItem(title: "压缩到 ZIP", action: #selector(compressToZip(_:)), keyEquivalent: "")
+            compressZipItem.target = self
+            menu.addItem(compressZipItem)
             
         default:
             break
         }
         
+        NSLog("[iLab-zip FinderSync] Returning menu with \(menu.items.count) items")
         return menu
     }
     
@@ -50,99 +55,64 @@ class FinderSyncExtension: FIFinderSync {
     
     @objc func extractHere(_ sender: AnyObject?) {
         guard let items = FIFinderSyncController.default().selectedItemURLs() else { return }
-        for item in items where isArchiveFile(item) {
-            sendXPCCommand(.extractHere, archivePath: item.path)
+        let archiveFiles = items.filter { isArchiveFile($0) }
+        NSLog("[iLab-zip FinderSync] extractHere: \(archiveFiles.map { $0.lastPathComponent })")
+        for item in archiveFiles {
+            openMainApp(action: "extract", files: [item.path])
         }
     }
     
     @objc func extractTo(_ sender: AnyObject?) {
         guard let items = FIFinderSyncController.default().selectedItemURLs() else { return }
+        let archiveFiles = items.filter { isArchiveFile($0) }
         
         let panel = NSOpenPanel()
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.canCreateDirectories = true
+        panel.prompt = "选择目标文件夹"
         
         panel.begin { response in
             guard response == .OK, let dest = panel.url else { return }
-            for item in items where self.isArchiveFile(item) {
-                self.sendXPCCommand(.extractTo, archivePath: item.path, destinationPath: dest.path)
+            NSLog("[iLab-zip FinderSync] extractTo: \(dest.path)")
+            for item in archiveFiles {
+                self.openMainApp(action: "extractto", files: [item.path], dest: dest.path)
             }
         }
     }
     
     @objc func compressTo7z(_ sender: AnyObject?) {
-        guard let items = FIFinderSyncController.default().selectedItemURLs(), let first = items.first else { return }
-        let outputName = first.deletingPathExtension().lastPathComponent + ".7z"
-        let outputPath = first.deletingLastPathComponent().appendingPathComponent(outputName).path
-        sendXPCCommand(.compressTo7z, files: items.map { $0.path }, outputPath: outputPath)
+        guard let items = FIFinderSyncController.default().selectedItemURLs() else { return }
+        NSLog("[iLab-zip FinderSync] compress7z: \(items.map { $0.lastPathComponent })")
+        openMainApp(action: "compress7z", files: items.map { $0.path })
     }
     
     @objc func compressToZip(_ sender: AnyObject?) {
-        guard let items = FIFinderSyncController.default().selectedItemURLs(), let first = items.first else { return }
-        let outputName = first.deletingPathExtension().lastPathComponent + ".zip"
-        let outputPath = first.deletingLastPathComponent().appendingPathComponent(outputName).path
-        sendXPCCommand(.compressToZip, files: items.map { $0.path }, outputPath: outputPath)
+        guard let items = FIFinderSyncController.default().selectedItemURLs() else { return }
+        NSLog("[iLab-zip FinderSync] compressZip: \(items.map { $0.lastPathComponent })")
+        openMainApp(action: "compresszip", files: items.map { $0.path })
     }
     
-    // MARK: - XPC 通信
+    // MARK: - 通过 URL Scheme 调用主应用
     
-    enum XPCCommand {
-        case extractHere
-        case extractTo
-        case compressTo7z
-        case compressToZip
-    }
-    
-    private func sendXPCCommand(_ command: XPCCommand, archivePath: String? = nil, destinationPath: String? = nil, files: [String]? = nil, outputPath: String? = nil) {
-        let serviceName = "com.ilab.iLab-zip.XPCService"
-        let connection = NSXPCConnection(serviceName: serviceName)
-        connection.remoteObjectInterface = NSXPCInterface(with: ArchiveXPCProtocol.self)
-        connection.resume()
+    private func openMainApp(action: String, files: [String], dest: String? = nil) {
+        var components = URLComponents()
+        components.scheme = "ilabzip"
+        components.host = action
         
-        guard let proxy = connection.remoteObjectProxy as? ArchiveXPCProtocol else {
-            connection.invalidate()
+        var queryItems = files.map { URLQueryItem(name: "file", value: $0) }
+        if let dest = dest {
+            queryItems.append(URLQueryItem(name: "dest", value: dest))
+        }
+        components.queryItems = queryItems
+        
+        guard let url = components.url else {
+            NSLog("[iLab-zip FinderSync] Failed to construct URL")
             return
         }
         
-        switch command {
-        case .extractHere:
-            if let path = archivePath {
-                proxy.extractHere(archivePath: path) { success, error in
-                    if !success {
-                        NSLog("iLab-zip: Extract failed: \(error ?? "unknown")")
-                    }
-                    connection.invalidate()
-                }
-            }
-        case .extractTo:
-            if let path = archivePath, let dest = destinationPath {
-                proxy.extractTo(archivePath: path, destinationPath: dest) { success, error in
-                    if !success {
-                        NSLog("iLab-zip: Extract failed: \(error ?? "unknown")")
-                    }
-                    connection.invalidate()
-                }
-            }
-        case .compressTo7z:
-            if let files = files, let output = outputPath {
-                proxy.compressTo7z(files: files, outputPath: output) { success, error in
-                    if !success {
-                        NSLog("iLab-zip: Compress failed: \(error ?? "unknown")")
-                    }
-                    connection.invalidate()
-                }
-            }
-        case .compressToZip:
-            if let files = files, let output = outputPath {
-                proxy.compressToZip(files: files, outputPath: output) { success, error in
-                    if !success {
-                        NSLog("iLab-zip: Compress failed: \(error ?? "unknown")")
-                    }
-                    connection.invalidate()
-                }
-            }
-        }
+        NSLog("[iLab-zip FinderSync] Opening URL: \(url.absoluteString)")
+        NSWorkspace.shared.open(url)
     }
     
     // MARK: - 工具
@@ -152,3 +122,4 @@ class FinderSyncExtension: FIFinderSync {
         return supportedExtensions.contains(url.pathExtension.lowercased())
     }
 }
+
