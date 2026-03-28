@@ -159,6 +159,20 @@ The 7-Zip engine (`7zz`) is licensed under [LGPL-2.1](https://www.7-zip.org/lice
 
 <div align="center">
 
+## 💬 联系作者 | Contact
+
+欢迎扫码添加微信交流技术，添加好友请注明来由（如：iLab-zip / GitHub）。
+
+*Feel free to add me on WeChat for technical discussions. Please mention the reason (e.g., iLab-zip / GitHub).*
+
+<img src="assets/wechat-qr.jpg" width="280" alt="WeChat QR Code" />
+
+</div>
+
+---
+
+<div align="center">
+
 **如压** — 让解压缩回归简单与自由 ✨
 
 *iLab-zip — Making archive management simple and free* ✨
