@@ -4,7 +4,7 @@
 
 **🗜️ 免费开源的 macOS 原生压缩/解压工具 | Free & Open-Source Archive Manager for macOS**
 
-[![Build](https://github.com/nicenemo/iLab-zip/actions/workflows/build.yml/badge.svg)](https://github.com/nicenemo/iLab-zip/actions)
+[![Build](https://github.com/kadevin/ilab-zip/actions/workflows/build.yml/badge.svg)](https://github.com/kadevin/ilab-zip/actions)
 [![License: LGPL v2.1](https://img.shields.io/badge/License-LGPL_v2.1-blue.svg)](LICENSE)
 [![Platform: macOS 13+](https://img.shields.io/badge/Platform-macOS_13%2B-brightgreen.svg)]()
 [![Swift 5.9](https://img.shields.io/badge/Swift-5.9-orange.svg)]()
@@ -45,7 +45,7 @@
 
 #### 从 Release 下载
 
-前往 [Releases](https://github.com/nicenemo/iLab-zip/releases) 页面下载最新的 `.dmg` 安装包。
+前往 [Releases](https://github.com/kadevin/ilab-zip/releases) 页面下载最新的 `.dmg` 安装包。
 
 #### 从源码编译
 
@@ -54,7 +54,7 @@
 brew install xcodegen
 
 # 克隆仓库
-git clone https://github.com/nicenemo/iLab-zip.git
+git clone https://github.com/kadevin/ilab-zip.git
 cd iLab-zip
 
 # 生成 Xcode 项目
@@ -118,7 +118,7 @@ Most GUI archive tools for macOS — such as BetterZip, Archiver, and WinZip —
 
 #### Download from Releases
 
-Visit the [Releases](https://github.com/nicenemo/iLab-zip/releases) page to download the latest `.dmg`.
+Visit the [Releases](https://github.com/kadevin/ilab-zip/releases) page to download the latest `.dmg`.
 
 #### Build from Source
 
@@ -127,7 +127,7 @@ Visit the [Releases](https://github.com/nicenemo/iLab-zip/releases) page to down
 brew install xcodegen
 
 # Clone the repository
-git clone https://github.com/nicenemo/iLab-zip.git
+git clone https://github.com/kadevin/ilab-zip.git
 cd iLab-zip
 
 # Generate Xcode project

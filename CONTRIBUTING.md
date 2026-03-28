@@ -8,7 +8,7 @@ Thank you for your interest in **iLab-zip**! We welcome all forms of contributio
 
 ## 🐛 报告 Bug | Report a Bug
 
-请通过 [GitHub Issues](https://github.com/nicenemo/iLab-zip/issues) 提交，并包含：
+请通过 [GitHub Issues](https://github.com/kadevin/ilab-zip/issues) 提交，并包含：
 
 - 操作系统版本（macOS version）
 - 复现步骤（Steps to reproduce）
@@ -28,7 +28,7 @@ Thank you for your interest in **iLab-zip**! We welcome all forms of contributio
 brew install xcodegen
 
 # 克隆仓库
-git clone https://github.com/nicenemo/iLab-zip.git
+git clone https://github.com/kadevin/ilab-zip.git
 cd iLab-zip
 
 # 生成 Xcode 项目
