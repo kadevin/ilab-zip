@@ -99,8 +99,17 @@ jobs:
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
+        git tag -d "v${{ inputs.version }}" 2>/dev/null || true
+        git push origin ":refs/tags/v${{ inputs.version }}" 2>/dev/null || true
         git tag -a "v${{ inputs.version }}" -m "Release v${{ inputs.version }}"
         git push origin "v${{ inputs.version }}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Delete Existing Release
+      run: gh release delete "v${{ inputs.version }}" --yes 2>/dev/null || true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Upload to Release
       uses: softprops/action-gh-release@v2
