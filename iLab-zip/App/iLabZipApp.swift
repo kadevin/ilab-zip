@@ -13,7 +13,11 @@ struct iLabZipApp: App {
                 .environmentObject(appState)
                 .frame(minWidth: 800, minHeight: 500)
                 .onOpenURL { url in
-                    appState.openArchive(url: url)
+                    if url.scheme == "ilabzip" {
+                        appState.handleFinderExtensionURL(url)
+                    } else {
+                        appState.openArchive(url: url)
+                    }
                 }
         }
         .commands {
@@ -67,6 +71,49 @@ final class AppState: ObservableObject {
     func openArchive(url: URL) {
         pendingArchiveURL = url
         NotificationCenter.default.post(name: .openArchive, object: url)
+    }
+    
+    /// 处理来自 Finder 扩展的 URL 命令
+    func handleFinderExtensionURL(_ url: URL) {
+        print("[iLab-zip] Received Finder extension URL: \(url.absoluteString)")
+        
+        let action = url.host ?? ""
+        let params = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        let files = params?.queryItems?.filter { $0.name == "file" }.compactMap {
+            $0.value?.removingPercentEncoding
+        } ?? []
+        let dest = params?.queryItems?.first(where: { $0.name == "dest" })?.value?.removingPercentEncoding
+        
+        print("[iLab-zip] Action: \(action), Files: \(files), Dest: \(dest ?? "nil")")
+        
+        switch action {
+        case "extract":
+            for file in files {
+                let fileURL = URL(fileURLWithPath: file)
+                let destURL = URL(fileURLWithPath: dest ?? fileURL.deletingLastPathComponent().path)
+                NotificationCenter.default.post(name: .extractArchive, object: nil,
+                                               userInfo: ["archiveURL": fileURL, "destinationURL": destURL])
+            }
+        case "extractto":
+            for file in files {
+                let fileURL = URL(fileURLWithPath: file)
+                if let destPath = dest {
+                    let destURL = URL(fileURLWithPath: destPath)
+                    NotificationCenter.default.post(name: .extractArchive, object: nil,
+                                                   userInfo: ["archiveURL": fileURL, "destinationURL": destURL])
+                }
+            }
+        case "compress7z":
+            let fileURLs = files.map { URL(fileURLWithPath: $0) }
+            NotificationCenter.default.post(name: .compressFiles, object: nil,
+                                           userInfo: ["files": fileURLs, "format": "7z"])
+        case "compresszip":
+            let fileURLs = files.map { URL(fileURLWithPath: $0) }
+            NotificationCenter.default.post(name: .compressFiles, object: nil,
+                                           userInfo: ["files": fileURLs, "format": "zip"])
+        default:
+            print("[iLab-zip] Unknown action: \(action)")
+        }
     }
     
     // MARK: - Finder 扩展操作处理
