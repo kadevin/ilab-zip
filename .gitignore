@@ -41,4 +41,3 @@ fastlane/test_output
 *.zip
 
 # Temporary files
-*.icns
