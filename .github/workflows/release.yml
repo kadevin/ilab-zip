@@ -1,9 +1,17 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '版本号 (例如: 1.0.0)'
+        required: true
+        type: string
+      prerelease:
+        description: '标记为预发布版本'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   test:
@@ -75,7 +83,6 @@ jobs:
         APP_PATH=$(find build/Build/Products/Release -name "*.app" -type d | head -1)
         echo "APP_PATH=$APP_PATH" >> $GITHUB_ENV
         echo "Found app at: $APP_PATH"
-        ls -la "$APP_PATH/Contents/"
 
     - name: Create DMG
       run: |
@@ -85,14 +92,22 @@ jobs:
           --window-size 600 400 \
           --icon-size 100 \
           --app-drop-link 450 185 \
-          "iLab-zip-${GITHUB_REF_NAME}.dmg" \
+          "iLab-zip-v${{ inputs.version }}.dmg" \
           "$APP_PATH" || true
-        ls -la *.dmg 2>/dev/null || echo "DMG creation may have warnings but file should exist"
+
+    - name: Create Tag
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git tag -a "v${{ inputs.version }}" -m "Release v${{ inputs.version }}"
+        git push origin "v${{ inputs.version }}"
 
     - name: Upload to Release
       uses: softprops/action-gh-release@v2
       with:
+        tag_name: "v${{ inputs.version }}"
+        name: "如压 v${{ inputs.version }}"
         files: "*.dmg"
         generate_release_notes: true
         draft: false
-        prerelease: false
+        prerelease: ${{ inputs.prerelease }}
