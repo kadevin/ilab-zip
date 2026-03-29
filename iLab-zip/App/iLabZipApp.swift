@@ -16,7 +16,9 @@ struct iLabZipApp: App {
                     if url.scheme == "ilabzip" {
                         appState.handleFinderExtensionURL(url)
                     } else {
-                        appState.openArchive(url: url)
+                        // 文件打开 — 通过通知分发给 ArchiveWindowView
+                        NSLog("[iLab-zip] onOpenURL file: %@", url.path)
+                        NotificationCenter.default.post(name: .openArchive, object: url)
                     }
                 }
         }
@@ -43,9 +45,9 @@ final class AppState: ObservableObject {
         // 尝试从 bundle 加载引擎
         do {
             engine = try ArchiveEngine()
-            print("[iLab-zip] ArchiveEngine initialized from bundle")
+            NSLog("[iLab-zip] ArchiveEngine initialized from bundle")
         } catch {
-            print("[iLab-zip] Bundle engine failed: \(error)")
+            NSLog("[iLab-zip] Bundle engine failed: %@", error.localizedDescription)
         }
         
         // 如果 Bundle 中找不到，尝试从 app 同级目录查找

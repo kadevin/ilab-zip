@@ -67,33 +67,38 @@ final class ArchiveWindowViewModel: ObservableObject {
         self.currentPath = ""
         
         guard let engine = engine else {
-            print("[iLab-zip] ERROR: engine is nil in openArchive!")
+            NSLog("[iLab-zip] ERROR: engine is nil in openArchive!")
             errorMessage = NSLocalizedString("error.engineNotFound", comment: "")
             isLoading = false
             return
         }
         
-        print("[iLab-zip] Opening archive: \(url.path)")
+        NSLog("[iLab-zip] Opening archive: %@", url.path)
         
         // 自动尝试密码
         let autoTry = PasswordAutoTry(engine: engine)
+        NSLog("[iLab-zip] Starting password auto-try...")
         let result = await autoTry.tryPasswords(for: url)
+        NSLog("[iLab-zip] Password auto-try completed")
         
         var password: String? = nil
         switch result {
         case .notEncrypted:
-            break
+            NSLog("[iLab-zip] Archive is NOT encrypted")
         case .found(let pwd):
             password = pwd
             self.archivePassword = pwd
+            NSLog("[iLab-zip] Found password in vault")
         case .notFound:
-            // 需要用户输入密码
+            NSLog("[iLab-zip] Encrypted but no matching password - showing prompt")
             self.showPasswordPrompt = true
             self.isLoading = false
             return
         }
         
+        NSLog("[iLab-zip] Calling loadEntries...")
         await loadEntries(password: password)
+        NSLog("[iLab-zip] loadEntries completed")
     }
     
     /// 用户输入密码后重新加载

@@ -6,6 +6,9 @@ struct ArchiveWindowView: View {
     @StateObject private var viewModel = ArchiveWindowViewModel()
     @State private var selectedEntries: Set<ArchiveEntry.ID> = []
     
+    /// 用于通知去重，防止多窗口重复处理同一文件
+    nonisolated(unsafe) static var lastOpenID: String = ""
+    
     var body: some View {
         NavigationSplitView {
             // 左侧 — 目录树
@@ -56,26 +59,37 @@ struct ArchiveWindowView: View {
             // 设置引擎
             if let engine = appState.engine {
                 viewModel.setEngine(engine)
-                print("[iLab-zip] Engine set in ArchiveWindowView.onAppear")
+                NSLog("[iLab-zip] Engine set in ArchiveWindowView.onAppear")
             } else {
-                print("[iLab-zip] WARNING: No engine available in onAppear!")
+                NSLog("[iLab-zip] WARNING: No engine available in onAppear!")
             }
             
             // 检查是否有待打开的文件
             if let pendingURL = appState.pendingArchiveURL {
-                print("[iLab-zip] Opening pending archive: \(pendingURL.path)")
+                NSLog("[iLab-zip] Opening pending archive: %@", pendingURL.path)
                 appState.pendingArchiveURL = nil
                 Task { await viewModel.openArchive(url: pendingURL) }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .openArchive)) { notification in
             if let url = notification.object as? URL {
-                print("[iLab-zip] Received openArchive notification: \(url.path)")
-                // 确保引擎已设置
+                // 用 UUID 去重：同一通知只处理一次
+                let notifID = ObjectIdentifier(notification as AnyObject)
+                let key = "\(url.path)_\(Date().timeIntervalSince1970)"
+                guard ArchiveWindowView.lastOpenID != url.path || !viewModel.isLoading else { return }
+                ArchiveWindowView.lastOpenID = url.path
+                
+                NSLog("[iLab-zip] Processing openArchive: %@", url.path)
                 if viewModel.engine == nil, let engine = appState.engine {
                     viewModel.setEngine(engine)
                 }
                 Task { await viewModel.openArchive(url: url) }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .finderExtensionAction)) { notification in
+            if let url = notification.object as? URL {
+                NSLog("[iLab-zip] Received finderExtensionAction: %@", url.absoluteString)
+                appState.handleFinderExtensionURL(url)
             }
         }
         .sheet(isPresented: $viewModel.showPasswordPrompt) {

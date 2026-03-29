@@ -139,7 +139,7 @@ final class ArchiveEngine: ObservableObject {
     
     /// 执行 7zz 命令并返回完整输出
     private nonisolated func runCommand(args: [String]) async throws -> String {
-        print("[iLab-zip] runCommand: \(enginePath) \(args.joined(separator: " "))")
+        NSLog("[iLab-zip] runCommand: %@ %@", enginePath, args.joined(separator: " "))
         
         return try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async { [enginePath] in
@@ -154,14 +154,18 @@ final class ArchiveEngine: ObservableObject {
                 
                 do {
                     try process.run()
-                    process.waitUntilExit()
                     
+                    // ⚠️ 必须先读取 pipe 数据，再 waitUntilExit()
+                    // 否则当输出超过 pipe buffer（64KB）时会死锁
                     let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
                     let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+                    
+                    process.waitUntilExit()
+                    
                     let stdout = String(data: stdoutData, encoding: .utf8) ?? ""
                     let stderr = String(data: stderrData, encoding: .utf8) ?? ""
                     
-                    print("[iLab-zip] Process exit code: \(process.terminationStatus), stdout length: \(stdout.count)")
+                    NSLog("[iLab-zip] Process exit code: %d, stdout length: %d", process.terminationStatus, stdout.count)
                     
                     guard process.terminationStatus == 0 else {
                         continuation.resume(throwing: ArchiveError.from(exitCode: process.terminationStatus, stderr: stderr))
@@ -170,7 +174,7 @@ final class ArchiveEngine: ObservableObject {
                     
                     continuation.resume(returning: stdout)
                 } catch {
-                    print("[iLab-zip] Process launch error: \(error)")
+                    NSLog("[iLab-zip] Process launch error: %@", error.localizedDescription)
                     continuation.resume(throwing: error)
                 }
             }

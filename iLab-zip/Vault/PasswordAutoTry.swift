@@ -23,15 +23,17 @@ final class PasswordAutoTry {
         // 1. 用 listContents（空密码）快速检测是否加密
         //    listContents 只读取 header，对大文件也是即时返回
         do {
+            NSLog("[iLab-zip] PasswordAutoTry: checking encryption with listContents...")
             let entries = try await engine.listContents(of: archive, password: nil)
+            NSLog("[iLab-zip] PasswordAutoTry: listContents returned %d entries", entries.count)
             let hasEncrypted = entries.contains { $0.isEncrypted }
             if !hasEncrypted {
+                NSLog("[iLab-zip] PasswordAutoTry: NOT encrypted")
                 return .notEncrypted
             }
+            NSLog("[iLab-zip] PasswordAutoTry: IS encrypted")
         } catch {
-            // 如果是 header 加密（7z -mhe=on），listContents 无密码会直接报错
-            // 这也说明文件是加密的，继续尝试密码
-            print("[iLab-zip] PasswordAutoTry: listContents error (likely header-encrypted): \(error)")
+            NSLog("[iLab-zip] PasswordAutoTry: listContents error (likely header-encrypted): %@", error.localizedDescription)
         }
         
         // 2. 获取密码列表（按最近使用时间排序）
