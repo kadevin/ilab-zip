@@ -26,9 +26,8 @@ final class ArchiveEngine: ObservableObject {
     /// 列出压缩包所有条目（使用 7zz l -slt）
     nonisolated func listContents(of archive: URL, password: String? = nil) async throws -> [ArchiveEntry] {
         var args = ["l", "-slt", archive.path]
-        if let password = password {
-            args.append("-p\(password)")
-        }
+        // 始终传 -p 防止 7zz 进入交互模式等待输入密码
+        args.append("-p\(password ?? "")")
         
         let output = try await runCommand(args: args)
         return parseListOutput(output)
@@ -98,9 +97,8 @@ final class ArchiveEngine: ObservableObject {
     /// 测试压缩包完整性（用于检测是否加密及密码是否正确）
     nonisolated func testIntegrity(of archive: URL, password: String? = nil) async throws -> Bool {
         var args = ["t", archive.path]
-        if let password = password {
-            args.append("-p\(password)")
-        }
+        // 始终传 -p 防止 7zz 进入交互模式等待输入密码
+        args.append("-p\(password ?? "")")
         
         do {
             _ = try await runCommand(args: args)
