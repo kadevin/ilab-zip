@@ -118,8 +118,30 @@ class FinderSyncExtension: FIFinderSync {
     // MARK: - 工具
     
     private func isArchiveFile(_ url: URL) -> Bool {
-        let supportedExtensions = ["7z", "zip", "rar", "tar", "gz", "bz2", "xz", "iso", "dmg", "cab", "arj", "lzh", "wim"]
-        return supportedExtensions.contains(url.pathExtension.lowercased())
+        let supportedExtensions = [
+            "7z", "zip", "rar", "tar", "gz", "bz2", "xz", "iso", "dmg",
+            "cab", "arj", "lzh", "wim", "z", "cpio", "rpm", "deb", "tgz", "tbz2", "txz"
+        ]
+        let ext = url.pathExtension.lowercased()
+        
+        // 直接匹配已知扩展名
+        if supportedExtensions.contains(ext) { return true }
+        
+        // 匹配分卷文件: .001, .002, ..., .999
+        if let _ = Int(ext), ext.count == 3 { return true }
+        
+        // 匹配 7z 分卷: filename.7z.001
+        let fullName = url.lastPathComponent.lowercased()
+        if fullName.contains(".7z.") || fullName.contains(".zip.") || fullName.contains(".rar.") {
+            return true
+        }
+        
+        // 匹配 rar 分卷: .part1.rar, .part01.rar
+        if ext == "rar" || fullName.range(of: #"\.part\d+\.rar$"#, options: .regularExpression) != nil {
+            return true
+        }
+        
+        return false
     }
 }
 

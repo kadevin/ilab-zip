@@ -178,6 +178,40 @@
 			<key>LSHandlerRank</key>
 			<string>Default</string>
 		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>001</string>
+				<string>002</string>
+				<string>003</string>
+				<string>004</string>
+				<string>005</string>
+				<string>006</string>
+				<string>007</string>
+				<string>008</string>
+				<string>009</string>
+			</array>
+			<key>CFBundleTypeName</key>
+			<string>Split Archive</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>tgz</string>
+				<string>tbz2</string>
+				<string>txz</string>
+			</array>
+			<key>CFBundleTypeName</key>
+			<string>TGZ Archive</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>

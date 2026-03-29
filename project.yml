@@ -138,6 +138,26 @@ targets:
             LSHandlerRank: Default
             CFBundleTypeExtensions:
               - wim
+          - CFBundleTypeName: Split Archive
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Default
+            CFBundleTypeExtensions:
+              - "001"
+              - "002"
+              - "003"
+              - "004"
+              - "005"
+              - "006"
+              - "007"
+              - "008"
+              - "009"
+          - CFBundleTypeName: TGZ Archive
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Default
+            CFBundleTypeExtensions:
+              - tgz
+              - tbz2
+              - txz
         CFBundleURLTypes:
           - CFBundleURLName: iLab-zip Actions
             CFBundleURLSchemes:
