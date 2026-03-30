@@ -287,7 +287,14 @@ final class ArchiveEngine: ObservableObject {
     /// 解析 7zz l -slt 输出为 ArchiveEntry 数组
     private func parseListOutput(_ output: String) -> [ArchiveEntry] {
         var entries: [ArchiveEntry] = []
-        let blocks = output.components(separatedBy: "\n\n")
+        
+        // 7zz 输出格式：header 信息在 "----------" 之前，文件条目在之后
+        // 必须跳过 header，否则其中的 Path（含绝对路径）会被误解析为文件内容
+        guard let separatorRange = output.range(of: "----------") else {
+            return entries
+        }
+        let fileSection = String(output[separatorRange.upperBound...])
+        let blocks = fileSection.components(separatedBy: "\n\n")
         
         for block in blocks {
             var path: String?

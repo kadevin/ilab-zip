@@ -25,10 +25,6 @@ struct FileListView: View {
                     Text(entry.name)
                         .lineLimit(1)
                 }
-                .contentShape(Rectangle())
-                .onTapGesture(count: 2) {
-                    onDoubleClick(entry)
-                }
             }
             .width(min: 200)
             
@@ -61,7 +57,25 @@ struct FileListView: View {
             }
             .width(80)
         }
+        .onChange(of: selection) { newSelection in
+            // 检测双击：如果短时间内同一个项被重新选中
+            guard newSelection.count == 1, let id = newSelection.first else { return }
+            if id == lastSelectedID {
+                let elapsed = Date().timeIntervalSince(lastSelectTime)
+                if elapsed < 0.5 {
+                    // 双击
+                    if let entry = entries.first(where: { $0.id == id }) {
+                        onDoubleClick(entry)
+                    }
+                }
+            }
+            lastSelectedID = id
+            lastSelectTime = Date()
+        }
     }
+    
+    @State private var lastSelectedID: ArchiveEntry.ID? = nil
+    @State private var lastSelectTime: Date = .distantPast
     
     // MARK: - 工具方法
     

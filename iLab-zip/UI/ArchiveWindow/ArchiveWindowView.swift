@@ -206,7 +206,27 @@ struct ArchiveWindowView: View {
     
     private func extractAll() {
         guard let engine = appState.engine, let archiveURL = viewModel.archiveURL else {
-            print("[iLab-zip] extractAll: engine or archiveURL is nil")
+            NSLog("[iLab-zip] extractAll: engine or archiveURL is nil")
+            return
+        }
+        
+        // 直接解压到压缩文件所在目录的同名子文件夹
+        let archiveDir = archiveURL.deletingLastPathComponent()
+        let archiveName = archiveURL.deletingPathExtension().lastPathComponent
+        let dest = archiveDir.appendingPathComponent(archiveName)
+        
+        // 创建目标文件夹
+        try? FileManager.default.createDirectory(at: dest, withIntermediateDirectories: true)
+        
+        // 获取选中文件的路径
+        let selected = getSelectedPaths()
+        NSLog("[iLab-zip] extractAll to: %@, selected: %d files", dest.path, selected.count)
+        performExtraction(engine: engine, archiveURL: archiveURL, destination: dest, selectedPaths: selected)
+    }
+    
+    private func extractToLocation() {
+        guard let engine = appState.engine, let archiveURL = viewModel.archiveURL else {
+            NSLog("[iLab-zip] extractToLocation: engine or archiveURL is nil")
             return
         }
         
@@ -219,49 +239,62 @@ struct ArchiveWindowView: View {
         
         panel.begin { response in
             guard response == .OK, let dest = panel.url else { return }
-            
-            Task { @MainActor in
-                viewModel.isLoading = true
-                viewModel.errorMessage = nil
-                
-                let stream = engine.extract(archive: archiveURL, to: dest, password: viewModel.archivePassword)
-                
-                for await progress in stream {
-                    switch progress.phase {
-                    case .completed:
-                        viewModel.isLoading = false
-                        // 解压完成，在 Finder 中显示
-                        NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: dest.path)
-                        print("[iLab-zip] Extract completed to: \(dest.path)")
-                        
-                    case .failed(let error):
-                        viewModel.isLoading = false
-                        viewModel.errorMessage = error.localizedDescription
-                        print("[iLab-zip] Extract failed: \(error)")
-                        
-                    case .processing:
-                        // 进度更新（未来可接入 ProgressWindowView）
-                        print("[iLab-zip] Extract progress: \(progress.percentage)% - \(progress.currentFile ?? "")")
-                        
-                    case .preparing:
-                        print("[iLab-zip] Extract preparing...")
-                        
-                    case .finishing:
-                        print("[iLab-zip] Extract finishing...")
-                        
-                    case .cancelled:
-                        viewModel.isLoading = false
-                        print("[iLab-zip] Extract cancelled")
-                    }
-                }
-                
-                viewModel.isLoading = false
-            }
+            let selected = self.getSelectedPaths()
+            NSLog("[iLab-zip] extractToLocation to: %@, selected: %d files", dest.path, selected.count)
+            self.performExtraction(engine: engine, archiveURL: archiveURL, destination: dest, selectedPaths: selected)
         }
     }
     
-    private func extractToLocation() {
-        extractAll()
+    /// 获取用户选中的文件路径
+    private func getSelectedPaths() -> [String] {
+        guard !selectedEntries.isEmpty else { return [] }
+        return viewModel.entries
+            .filter { selectedEntries.contains($0.id) }
+            .map { $0.path }
+    }
+    
+    private func performExtraction(engine: ArchiveEngine, archiveURL: URL, destination: URL, selectedPaths: [String] = []) {
+        Task { @MainActor in
+            viewModel.isLoading = true
+            viewModel.errorMessage = nil
+            
+            let stream: AsyncStream<ArchiveProgress>
+            if selectedPaths.isEmpty {
+                // 解压全部
+                stream = engine.extract(archive: archiveURL, to: destination, password: viewModel.archivePassword)
+            } else {
+                // 只解压选中的文件
+                stream = engine.extractSelected(archive: archiveURL, entries: selectedPaths, to: destination, password: viewModel.archivePassword)
+            }
+            
+            for await progress in stream {
+                switch progress.phase {
+                case .completed:
+                    viewModel.isLoading = false
+                    NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: destination.path)
+                    NSLog("[iLab-zip] Extract completed to: %@", destination.path)
+                    
+                case .failed(let error):
+                    viewModel.isLoading = false
+                    viewModel.errorMessage = error.localizedDescription
+                    NSLog("[iLab-zip] Extract failed: %@", error.localizedDescription)
+                    
+                case .processing:
+                    break
+                    
+                case .preparing:
+                    break
+                    
+                case .finishing:
+                    break
+                    
+                case .cancelled:
+                    viewModel.isLoading = false
+                }
+            }
+            
+            viewModel.isLoading = false
+        }
     }
     
     private func handleFileDrop(_ providers: [NSItemProvider]) -> Bool {

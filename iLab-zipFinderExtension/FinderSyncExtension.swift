@@ -32,7 +32,6 @@ class FinderSyncExtension: FIFinderSync {
                 extractToItem.target = self
                 menu.addItem(extractToItem)
                 
-                menu.addItem(NSMenuItem.separator())
             }
             
             let compress7zItem = NSMenuItem(title: "压缩到 7z", action: #selector(compressTo7z(_:)), keyEquivalent: "")
