@@ -42,6 +42,10 @@ class FinderSyncExtension: FIFinderSync {
             compressZipItem.target = self
             menu.addItem(compressZipItem)
             
+            let splitItem = NSMenuItem(title: "压缩到分卷文件...", action: #selector(compressToSplit(_:)), keyEquivalent: "")
+            splitItem.target = self
+            menu.addItem(splitItem)
+            
         default:
             break
         }
@@ -90,6 +94,12 @@ class FinderSyncExtension: FIFinderSync {
         guard let items = FIFinderSyncController.default().selectedItemURLs() else { return }
         NSLog("[iLab-zip FinderSync] compressZip: \(items.map { $0.lastPathComponent })")
         openMainApp(action: "compresszip", files: items.map { $0.path })
+    }
+    
+    @objc func compressToSplit(_ sender: AnyObject?) {
+        guard let items = FIFinderSyncController.default().selectedItemURLs() else { return }
+        NSLog("[iLab-zip FinderSync] compressSplit: \(items.map { $0.lastPathComponent })")
+        openMainApp(action: "compresssplit", files: items.map { $0.path })
     }
     
     // MARK: - 通过 URL Scheme 调用主应用

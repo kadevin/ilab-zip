@@ -58,6 +58,20 @@ final class ArchiveEngine: ObservableObject {
         return runWithProgress(args: args)
     }
     
+    // MARK: - 添加文件到压缩包
+    
+    /// 向已有压缩包添加文件/文件夹
+    nonisolated func addToArchive(archive: URL, files: [URL], password: String? = nil) -> AsyncStream<ArchiveProgress> {
+        var args = ["a", archive.path]
+        args.append(contentsOf: files.map { $0.path })
+        args.append("-y")
+        // 只在有密码时传 -p，否则 7zz 的 a 命令会进入交互模式等待输入
+        if let password = password, !password.isEmpty {
+            args.append("-p\(password)")
+        }
+        return runWithProgress(args: args)
+    }
+    
     // MARK: - 压缩
     
     /// 创建压缩包

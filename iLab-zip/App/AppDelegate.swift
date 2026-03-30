@@ -46,4 +46,5 @@ extension Notification.Name {
     static let extractArchive = Notification.Name("com.ilab.iLab-zip.extractArchive")
     static let compressFiles = Notification.Name("com.ilab.iLab-zip.compressFiles")
     static let finderExtensionAction = Notification.Name("com.ilab.iLab-zip.finderExtensionAction")
+    static let showSplitCompress = Notification.Name("com.ilab.iLab-zip.showSplitCompress")
 }

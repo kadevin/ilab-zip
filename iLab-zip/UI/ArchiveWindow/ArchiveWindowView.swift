@@ -59,17 +59,16 @@ struct ArchiveWindowView: View {
             // 设置引擎
             if let engine = appState.engine {
                 viewModel.setEngine(engine)
-                NSLog("[iLab-zip] Engine set in ArchiveWindowView.onAppear")
-            } else {
-                NSLog("[iLab-zip] WARNING: No engine available in onAppear!")
             }
             
             // 检查是否有待打开的文件
             if let pendingURL = appState.pendingArchiveURL {
-                NSLog("[iLab-zip] Opening pending archive: %@", pendingURL.path)
                 appState.pendingArchiveURL = nil
                 Task { await viewModel.openArchive(url: pendingURL) }
             }
+            
+            // 设置工具栏 autosave
+            setupToolbarAutosave()
         }
         .onReceive(NotificationCenter.default.publisher(for: .openArchive)) { notification in
             if let url = notification.object as? URL {
@@ -92,14 +91,27 @@ struct ArchiveWindowView: View {
                 appState.handleFinderExtensionURL(url)
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .showSplitCompress)) { notification in
+            if let files = notification.userInfo?["files"] as? [URL] {
+                NSLog("[iLab-zip] showSplitCompress: %d files", files.count)
+                viewModel.splitCompressFiles = files
+                viewModel.showCompressionSheet = true
+            }
+        }
         .sheet(isPresented: $viewModel.showPasswordPrompt) {
             PasswordPromptView { password in
                 Task { await viewModel.retryWithPassword(password) }
             }
         }
         .sheet(isPresented: $viewModel.showCompressionSheet) {
-            CompressionSheetView()
-                .environmentObject(appState)
+            CompressionSheetView(
+                presetFiles: viewModel.splitCompressFiles,
+                defaultSplit: viewModel.splitCompressFiles != nil
+            )
+            .environmentObject(appState)
+            .onDisappear {
+                viewModel.splitCompressFiles = nil
+            }
         }
         .alert(NSLocalizedString("error.title", comment: "错误"), isPresented: .constant(viewModel.errorMessage != nil)) {
             Button(NSLocalizedString("button.ok", comment: "确定")) {
@@ -141,6 +153,13 @@ struct ArchiveWindowView: View {
             .disabled(viewModel.entries.isEmpty)
             
             Divider()
+            
+            Button {
+                addFilesToArchive()
+            } label: {
+                Label("添加", systemImage: "plus.rectangle.on.folder")
+            }
+            .disabled(viewModel.archiveURL == nil)
             
             Button {
                 viewModel.showCompressionSheet = true
@@ -195,6 +214,24 @@ struct ArchiveWindowView: View {
             Task { @MainActor in
                 await viewModel.openArchive(url: url)
             }
+        }
+    }
+    
+    /// 设置工具栏显示模式持久化（图标/图标+文字）
+    private func setupToolbarAutosave() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            guard let window = NSApp.windows.first(where: { $0.isKeyWindow || $0.isMainWindow }),
+                  let toolbar = window.toolbar else { return }
+            toolbar.autosavesConfiguration = true
+            
+            // 恢复上次保存的显示模式
+            let savedMode = UserDefaults.standard.integer(forKey: "toolbarDisplayMode")
+            if savedMode > 0, let mode = NSToolbar.DisplayMode(rawValue: UInt(savedMode)) {
+                toolbar.displayMode = mode
+            }
+            
+            // 监听显示模式变化并自动保存
+            ToolbarObserver.shared.observe(toolbar: toolbar)
         }
     }
     
@@ -294,6 +331,52 @@ struct ArchiveWindowView: View {
             }
             
             viewModel.isLoading = false
+        }
+    }
+    
+    private func addFilesToArchive() {
+        guard let engine = appState.engine, let archiveURL = viewModel.archiveURL else {
+            NSLog("[iLab-zip] addFilesToArchive: engine or archiveURL is nil")
+            return
+        }
+        
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = true
+        panel.prompt = "添加"
+        panel.message = "选择要添加到压缩包的文件或文件夹"
+        
+        panel.begin { response in
+            guard response == .OK, !panel.urls.isEmpty else { return }
+            let filesToAdd = panel.urls
+            NSLog("[iLab-zip] Adding %d items to archive: %@", filesToAdd.count, archiveURL.path)
+            
+            Task { @MainActor in
+                viewModel.isLoading = true
+                viewModel.errorMessage = nil
+                
+                let stream = engine.addToArchive(archive: archiveURL, files: filesToAdd, password: viewModel.archivePassword)
+                
+                for await progress in stream {
+                    switch progress.phase {
+                    case .completed:
+                        NSLog("[iLab-zip] Add to archive completed")
+                        // 重新加载文件列表
+                        await viewModel.openArchive(url: archiveURL)
+                        
+                    case .failed(let error):
+                        viewModel.isLoading = false
+                        viewModel.errorMessage = error.localizedDescription
+                        NSLog("[iLab-zip] Add to archive failed: %@", error.localizedDescription)
+                        
+                    default:
+                        break
+                    }
+                }
+                
+                viewModel.isLoading = false
+            }
         }
     }
     

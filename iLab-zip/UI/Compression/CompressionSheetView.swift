@@ -5,6 +5,11 @@ struct CompressionSheetView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
     
+    /// 从 Finder 预设的文件列表（nil 时弹出文件选择器）
+    var presetFiles: [URL]? = nil
+    /// 是否默认启用分卷
+    var defaultSplit: Bool = false
+    
     @State private var selectedFiles: [URL] = []
     @State private var outputName: String = "archive"
     @State private var format: ArchiveFormat = .sevenZip
@@ -18,8 +23,28 @@ struct CompressionSheetView: View {
     var body: some View {
         VStack(spacing: 16) {
             // 标题
-            Text(NSLocalizedString("compress.title", comment: "创建压缩包"))
+            Text(defaultSplit
+                 ? NSLocalizedString("compress.splitTitle", comment: "创建分卷压缩包")
+                 : NSLocalizedString("compress.title", comment: "创建压缩包"))
                 .font(.headline)
+            
+            // 已选文件摘要
+            if !selectedFiles.isEmpty {
+                HStack {
+                    Image(systemName: "doc.on.doc")
+                        .foregroundColor(.secondary)
+                    Text(String(format: "已选择 %d 个文件/文件夹", selectedFiles.count))
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    if presetFiles == nil {
+                        Button("重新选择") {
+                            chooseFiles()
+                        }
+                        .buttonStyle(.link)
+                    }
+                }
+                .padding(.horizontal, 4)
+            }
             
             Form {
                 // 输出文件名
@@ -79,9 +104,22 @@ struct CompressionSheetView: View {
             }
         }
         .padding(20)
-        .frame(width: 450, height: 450)
+        .frame(width: 450, height: 500)
         .onAppear {
-            chooseFiles()
+            if let preset = presetFiles, !preset.isEmpty {
+                // 使用预设文件，不弹文件选择器
+                selectedFiles = preset
+                if let first = preset.first {
+                    outputName = first.deletingPathExtension().lastPathComponent
+                }
+            } else {
+                chooseFiles()
+            }
+            
+            // 默认分卷：预设 100MB
+            if defaultSplit {
+                volumeSize = .preset(megabytes: 100)
+            }
         }
     }
     
@@ -98,6 +136,9 @@ struct CompressionSheetView: View {
                 if let first = panel.urls.first {
                     outputName = first.deletingPathExtension().lastPathComponent
                 }
+            } else if presetFiles == nil {
+                // 用户取消了文件选择，关闭对话框
+                dismiss()
             }
         }
     }
@@ -127,7 +168,12 @@ struct CompressionSheetView: View {
                 let stream = engine.compress(files: selectedFiles, to: outputURL, options: options)
                 for await progress in stream {
                     if case .failed(let error) = progress.phase {
-                        print("[iLab-zip] Compress failed: \(error)")
+                        NSLog("[iLab-zip] Compress failed: %@", error.localizedDescription)
+                        let alert = NSAlert()
+                        alert.messageText = "压缩失败"
+                        alert.informativeText = error.localizedDescription
+                        alert.alertStyle = .warning
+                        alert.runModal()
                     } else if case .completed = progress.phase {
                         NSWorkspace.shared.selectFile(outputURL.path, inFileViewerRootedAtPath: outputURL.deletingLastPathComponent().path)
                     }

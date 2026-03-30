@@ -14,6 +14,7 @@ final class ArchiveWindowViewModel: ObservableObject {
     @Published var showCompressionSheet: Bool = false
     @Published var archiveURL: URL?
     @Published var archivePassword: String?
+    @Published var splitCompressFiles: [URL]?
     
     /// 当前目录下的文件列表（过滤后）
     var displayedEntries: [ArchiveEntry] {

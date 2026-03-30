@@ -113,6 +113,10 @@ final class AppState: ObservableObject {
             let fileURLs = files.map { URL(fileURLWithPath: $0) }
             NotificationCenter.default.post(name: .compressFiles, object: nil,
                                            userInfo: ["files": fileURLs, "format": "zip"])
+        case "compresssplit":
+            let fileURLs = files.map { URL(fileURLWithPath: $0) }
+            NotificationCenter.default.post(name: .showSplitCompress, object: nil,
+                                           userInfo: ["files": fileURLs])
         default:
             print("[iLab-zip] Unknown action: \(action)")
         }
@@ -159,6 +163,7 @@ final class AppState: ObservableObject {
             return
         }
         
+        let isSplit = userInfo["split"] as? Bool ?? false
         let archiveFormat: ArchiveFormat = format == "7z" ? .sevenZip : .zip
         let ext = format == "7z" ? "7z" : "zip"
         let outputName: String
@@ -169,9 +174,12 @@ final class AppState: ObservableObject {
         }
         let outputURL = firstFile.deletingLastPathComponent().appendingPathComponent(outputName)
         
-        print("[iLab-zip] Compressing \(files.map { $0.lastPathComponent }) to \(outputURL.path)")
+        NSLog("[iLab-zip] Compressing %@ to %@, split=%d", files.map { $0.lastPathComponent }.description, outputURL.path, isSplit ? 1 : 0)
         
-        let options = CompressionOptions(format: archiveFormat, level: 5)
+        var options = CompressionOptions(format: archiveFormat, level: 5)
+        if isSplit {
+            options.volumeSize = .preset(megabytes: 100)
+        }
         
         Task {
             let stream = engine.compress(files: files, to: outputURL, options: options)
@@ -192,7 +200,13 @@ final class AppState: ObservableObject {
     }
     
     private func showNotification(title: String, body: String) {
-        print("[iLab-zip] \(title): \(body)")
+        NSLog("[iLab-zip] %@: %@", title, body)
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = body
+        alert.alertStyle = title.contains("失败") ? .warning : .informational
+        alert.addButton(withTitle: "确定")
+        alert.runModal()
     }
 }
 
