@@ -37,6 +37,8 @@ jobs:
           -scheme iLab-zip \
           -destination 'platform=macOS,arch=${{ matrix.arch }}' \
           -skipPackagePluginValidation \
+          ARCHS="${{ matrix.arch }}" \
+          ONLY_ACTIVE_ARCH=NO \
           CODE_SIGN_IDENTITY="-" \
           CODE_SIGNING_REQUIRED=NO \
           ENABLE_USER_SCRIPT_SANDBOXING=NO
@@ -47,6 +49,8 @@ jobs:
           -scheme iLab-zip \
           -destination 'platform=macOS,arch=${{ matrix.arch }}' \
           -skipPackagePluginValidation \
+          ARCHS="${{ matrix.arch }}" \
+          ONLY_ACTIVE_ARCH=NO \
           CODE_SIGN_IDENTITY="-" \
           CODE_SIGNING_REQUIRED=NO \
           ENABLE_USER_SCRIPT_SANDBOXING=NO \
@@ -80,6 +84,8 @@ jobs:
           -destination 'platform=macOS,arch=${{ matrix.arch }}' \
           -derivedDataPath build \
           -skipPackagePluginValidation \
+          ARCHS="${{ matrix.arch }}" \
+          ONLY_ACTIVE_ARCH=NO \
           CODE_SIGN_IDENTITY="-" \
           CODE_SIGNING_REQUIRED=NO \
           ENABLE_USER_SCRIPT_SANDBOXING=NO
@@ -89,8 +95,10 @@ jobs:
         APP_PATH=$(find build/Build/Products/Release -name "*.app" -type d | head -1)
         echo "APP_PATH=$APP_PATH" >> $GITHUB_ENV
         echo "Found app at: $APP_PATH"
-        # 验证 7zz 架构
-        echo "--- 7zz arch check ---"
+        # 验证所有二进制架构
+        echo "--- 主二进制架构 ---"
+        lipo -info "$APP_PATH/Contents/MacOS/"* || true
+        echo "--- 7zz 架构 ---"
         lipo -info "$APP_PATH/Contents/Resources/7zz" || true
 
     - name: Create DMG
