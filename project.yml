@@ -25,11 +25,22 @@ targets:
     sources:
       - path: iLab-zip
         excludes:
-          - Resources/7zz
+          - Resources/7zz-arm64
+          - Resources/7zz-x86_64
       - path: iLab-zip/AppIcon.icon
     postCompileScripts:
       - script: |
-          cp "${PROJECT_DIR}/iLab-zip/Resources/7zz" "${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/7zz"
+          # 根据构建目标架构选择对应的 7zz 二进制
+          if echo "$ARCHS" | grep -q "arm64"; then
+            SRC_7ZZ="${PROJECT_DIR}/iLab-zip/Resources/7zz-arm64"
+          elif echo "$ARCHS" | grep -q "x86_64"; then
+            SRC_7ZZ="${PROJECT_DIR}/iLab-zip/Resources/7zz-x86_64"
+          else
+            # fallback: 默认 arm64
+            SRC_7ZZ="${PROJECT_DIR}/iLab-zip/Resources/7zz-arm64"
+          fi
+          echo "[Copy Resources] ARCHS=$ARCHS → using $SRC_7ZZ"
+          cp "$SRC_7ZZ" "${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/7zz"
           chmod 755 "${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/7zz"
           # 复制传统 icns 图标（CI 环境回退，macOS 15 不支持 .icon 格式）
           ICNS_SRC="${PROJECT_DIR}/iLab-zip/Resources/AppIcon.icns"
