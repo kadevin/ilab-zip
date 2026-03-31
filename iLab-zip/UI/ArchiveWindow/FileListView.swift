@@ -57,25 +57,15 @@ struct FileListView: View {
             }
             .width(80)
         }
-        .onChange(of: selection) { newSelection in
-            // 检测双击：如果短时间内同一个项被重新选中
-            guard newSelection.count == 1, let id = newSelection.first else { return }
-            if id == lastSelectedID {
-                let elapsed = Date().timeIntervalSince(lastSelectTime)
-                if elapsed < 0.5 {
-                    // 双击
-                    if let entry = entries.first(where: { $0.id == id }) {
-                        onDoubleClick(entry)
-                    }
-                }
+        .background(
+            TableDoubleClickHandler { clickedRow in
+                // clickedRow 是 NSTableView 中的行索引，对应 sortedEntries 的索引
+                guard clickedRow >= 0, clickedRow < sortedEntries.count else { return }
+                let entry = sortedEntries[clickedRow]
+                onDoubleClick(entry)
             }
-            lastSelectedID = id
-            lastSelectTime = Date()
-        }
+        )
     }
-    
-    @State private var lastSelectedID: ArchiveEntry.ID? = nil
-    @State private var lastSelectTime: Date = .distantPast
     
     // MARK: - 工具方法
     
@@ -102,5 +92,81 @@ struct FileListView: View {
     private func fileType(_ name: String) -> String {
         let ext = (name as NSString).pathExtension.uppercased()
         return ext.isEmpty ? NSLocalizedString("type.file", comment: "文件") : "\(ext) \(NSLocalizedString("type.file", comment: "文件"))"
+    }
+}
+
+// MARK: - NSTableView 双击处理器
+
+/// 通过挂钩底层 NSTableView 的 doubleAction 来可靠地检测双击事件。
+/// SwiftUI 的 Table 底层使用 NSTableView，但未暴露双击 API，
+/// 所以我们通过 NSViewRepresentable 查找并设置 doubleAction。
+struct TableDoubleClickHandler: NSViewRepresentable {
+    let action: (_ clickedRow: Int) -> Void
+    
+    class Coordinator: NSObject {
+        var action: (_ clickedRow: Int) -> Void
+        
+        init(action: @escaping (_ clickedRow: Int) -> Void) {
+            self.action = action
+        }
+        
+        @objc func handleDoubleClick(_ sender: NSTableView) {
+            let row = sender.clickedRow
+            guard row >= 0 else { return }
+            action(row)
+        }
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(action: action)
+    }
+    
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        // 延迟查找 NSTableView，确保视图层级已经构建完成
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            guard let tableView = findTableView(from: view) else {
+                NSLog("[iLab-zip] WARNING: 无法找到 NSTableView 来设置双击处理")
+                return
+            }
+            tableView.target = context.coordinator
+            tableView.doubleAction = #selector(Coordinator.handleDoubleClick(_:))
+        }
+        return view
+    }
+    
+    func updateNSView(_ nsView: NSView, context: Context) {
+        context.coordinator.action = action
+    }
+    
+    /// 从给定视图向上遍历视图层级，查找同一窗口中的 NSTableView
+    private func findTableView(from view: NSView) -> NSTableView? {
+        // 先尝试向上查找
+        var current: NSView? = view
+        while let v = current {
+            if let tv = v as? NSTableView { return tv }
+            // 在当前祖先的子视图中递归查找
+            for sibling in (v.superview?.subviews ?? []) where sibling !== v {
+                if let found = findTableViewInHierarchy(sibling) {
+                    return found
+                }
+            }
+            current = v.superview
+        }
+        // 最后尝试从窗口的 contentView 查找
+        if let contentView = view.window?.contentView {
+            return findTableViewInHierarchy(contentView)
+        }
+        return nil
+    }
+    
+    private func findTableViewInHierarchy(_ view: NSView) -> NSTableView? {
+        if let tv = view as? NSTableView { return tv }
+        for subview in view.subviews {
+            if let found = findTableViewInHierarchy(subview) {
+                return found
+            }
+        }
+        return nil
     }
 }
