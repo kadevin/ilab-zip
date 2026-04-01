@@ -139,21 +139,6 @@ struct ArchiveWindowView: View {
     var toolbarContent: some ToolbarContent {
         ToolbarItemGroup(placement: .primaryAction) {
             Button {
-                addFilesToArchive()
-            } label: {
-                Label("添加", systemImage: "plus.rectangle.on.folder")
-            }
-            .disabled(viewModel.archiveURL == nil)
-            
-            Button {
-                viewModel.showCompressionSheet = true
-            } label: {
-                Label(NSLocalizedString("toolbar.compress", comment: "压缩"), systemImage: "archivebox")
-            }
-        }
-        
-        ToolbarItemGroup(placement: .primaryAction) {
-            Button {
                 extractAll()
             } label: {
                 Label(NSLocalizedString("toolbar.extract", comment: "解压"), systemImage: "arrow.down.doc")
@@ -166,6 +151,25 @@ struct ArchiveWindowView: View {
                 Label(NSLocalizedString("toolbar.extractTo", comment: "解压到..."), systemImage: "arrow.down.doc.fill")
             }
             .disabled(viewModel.entries.isEmpty)
+            
+            // 垂直分隔线
+            Rectangle()
+                .fill(Color.secondary.opacity(0.4))
+                .frame(width: 1, height: 20)
+                .padding(.horizontal, 4)
+            
+            Button {
+                addFilesToArchive()
+            } label: {
+                Label("添加", systemImage: "plus.rectangle.on.folder")
+            }
+            .disabled(viewModel.archiveURL == nil)
+            
+            Button {
+                viewModel.showCompressionSheet = true
+            } label: {
+                Label(NSLocalizedString("toolbar.compress", comment: "压缩"), systemImage: "archivebox")
+            }
         }
         
         ToolbarItem(placement: .navigation) {
