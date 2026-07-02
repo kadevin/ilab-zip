@@ -11,7 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let enginePath = Bundle.main.path(forResource: "7zz", ofType: nil) {
             let attrs: [FileAttributeKey: Any] = [.posixPermissions: 0o755]
             try? FileManager.default.setAttributes(attrs, ofItemAtPath: enginePath)
-            NSLog("[iLab-zip] 7zz found at: %@", enginePath)
+            NSLog("[iLab-zip] 7zz resource found")
         } else {
             NSLog("[iLab-zip] WARNING: 7zz not found in bundle Resources!")
         }
@@ -26,12 +26,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSLog("[iLab-zip] application open urls: %d file(s)", urls.count)
         for url in urls {
             if url.scheme == "ilabzip" {
-                NSLog("[iLab-zip] Routing ilabzip URL: %@", url.absoluteString)
+                if let command = FinderExtensionCommand(url: url) {
+                    NSLog("[iLab-zip] Routing ilabzip URL: %@", FinderSyncLogFormatter.commandSummary(action: command.action, fileCount: command.files.count, hasDestination: command.dest != nil))
+                } else {
+                    NSLog("[iLab-zip] Routing unsupported ilabzip URL")
+                }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                     NotificationCenter.default.post(name: .finderExtensionAction, object: url)
                 }
             } else {
-                NSLog("[iLab-zip] Opening archive: %@", url.path)
+                NSLog("[iLab-zip] Opening archive: %@", FinderSyncLogFormatter.itemSummary([url]))
                 // 只发一次通知，而不是每个窗口实例都收到
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                     NotificationCenter.default.post(name: .openArchive, object: url)

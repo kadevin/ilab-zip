@@ -2,7 +2,7 @@ import Foundation
 import GRDB
 
 /// 密码条目模型
-struct PasswordEntry: Identifiable, Codable, FetchableRecord, PersistableRecord, TableRecord {
+struct PasswordEntry: Identifiable, Codable, FetchableRecord, MutablePersistableRecord, TableRecord {
     static let databaseTableName = "passwords"
     
     var id: Int64?
@@ -18,5 +18,9 @@ struct PasswordEntry: Identifiable, Codable, FetchableRecord, PersistableRecord,
     
     enum Columns: String, ColumnExpression {
         case id, label, cipher, usedAt, createdAt
+    }
+
+    mutating func didInsert(_ inserted: InsertionSuccess) {
+        id = inserted.rowID
     }
 }

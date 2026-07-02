@@ -1,6 +1,4 @@
 import XCTest
-import SwiftUI
-@testable import iLab_zip
 
 final class ArchiveWindowUITests: XCTestCase {
     var app: XCUIApplication!

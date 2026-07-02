@@ -6,9 +6,9 @@ class FinderSyncExtension: FIFinderSync {
     override init() {
         super.init()
         NSLog("[iLab-zip FinderSync] Extension initializing...")
-        // 监控所有目录（根目录），确保 Finder 中任何位置右键都能触发
-        FIFinderSyncController.default().directoryURLs = [URL(fileURLWithPath: "/")]
-        NSLog("[iLab-zip FinderSync] Monitoring directory: /")
+        let monitoredDirectories = FinderSyncConfiguration.defaultMonitoredDirectoryURLs()
+        FIFinderSyncController.default().directoryURLs = Set(monitoredDirectories)
+        NSLog("[iLab-zip FinderSync] Monitoring directories: count=\(monitoredDirectories.count)")
     }
     
     // MARK: - 右键菜单
@@ -20,7 +20,7 @@ class FinderSyncExtension: FIFinderSync {
         switch menuKind {
         case .contextualMenuForItems:
             let items = FIFinderSyncController.default().selectedItemURLs() ?? []
-            NSLog("[iLab-zip FinderSync] Selected items: \(items.map { $0.lastPathComponent })")
+            NSLog("[iLab-zip FinderSync] Selected items: \(FinderSyncLogFormatter.itemSummary(items))")
             let hasArchives = items.contains { isArchiveFile($0) }
             
             if hasArchives {
@@ -59,7 +59,7 @@ class FinderSyncExtension: FIFinderSync {
     @objc func extractHere(_ sender: AnyObject?) {
         guard let items = FIFinderSyncController.default().selectedItemURLs() else { return }
         let archiveFiles = items.filter { isArchiveFile($0) }
-        NSLog("[iLab-zip FinderSync] extractHere: \(archiveFiles.map { $0.lastPathComponent })")
+        NSLog("[iLab-zip FinderSync] extractHere: \(FinderSyncLogFormatter.itemSummary(archiveFiles))")
         for item in archiveFiles {
             openMainApp(action: "extract", files: [item.path])
         }
@@ -77,7 +77,7 @@ class FinderSyncExtension: FIFinderSync {
         
         panel.begin { response in
             guard response == .OK, let dest = panel.url else { return }
-            NSLog("[iLab-zip FinderSync] extractTo: \(dest.path)")
+            NSLog("[iLab-zip FinderSync] extractTo: \(FinderSyncLogFormatter.itemSummary(archiveFiles)), hasDestination=true")
             for item in archiveFiles {
                 self.openMainApp(action: "extractto", files: [item.path], dest: dest.path)
             }
@@ -86,42 +86,39 @@ class FinderSyncExtension: FIFinderSync {
     
     @objc func compressTo7z(_ sender: AnyObject?) {
         guard let items = FIFinderSyncController.default().selectedItemURLs() else { return }
-        NSLog("[iLab-zip FinderSync] compress7z: \(items.map { $0.lastPathComponent })")
+        NSLog("[iLab-zip FinderSync] compress7z: \(FinderSyncLogFormatter.itemSummary(items))")
         openMainApp(action: "compress7z", files: items.map { $0.path })
     }
     
     @objc func compressToZip(_ sender: AnyObject?) {
         guard let items = FIFinderSyncController.default().selectedItemURLs() else { return }
-        NSLog("[iLab-zip FinderSync] compressZip: \(items.map { $0.lastPathComponent })")
+        NSLog("[iLab-zip FinderSync] compressZip: \(FinderSyncLogFormatter.itemSummary(items))")
         openMainApp(action: "compresszip", files: items.map { $0.path })
     }
     
     @objc func compressToSplit(_ sender: AnyObject?) {
         guard let items = FIFinderSyncController.default().selectedItemURLs() else { return }
-        NSLog("[iLab-zip FinderSync] compressSplit: \(items.map { $0.lastPathComponent })")
+        NSLog("[iLab-zip FinderSync] compressSplit: \(FinderSyncLogFormatter.itemSummary(items))")
         openMainApp(action: "compresssplit", files: items.map { $0.path })
     }
     
     // MARK: - 通过 URL Scheme 调用主应用
     
     private func openMainApp(action: String, files: [String], dest: String? = nil) {
-        var components = URLComponents()
-        components.scheme = "ilabzip"
-        components.host = action
-        
-        var queryItems = files.map { URLQueryItem(name: "file", value: $0) }
-        if let dest = dest {
-            queryItems.append(URLQueryItem(name: "dest", value: dest))
-        }
-        components.queryItems = queryItems
-        
-        guard let url = components.url else {
-            NSLog("[iLab-zip FinderSync] Failed to construct URL")
+        let handoff = FinderExtensionHandoff(action: action, files: files, dest: dest)
+
+        let url: URL
+        do {
+            url = try FinderExtensionHandoffStore().writeURL(for: handoff)
+        } catch {
+            NSLog("[iLab-zip FinderSync] Failed to write handoff: \(error.localizedDescription)")
             return
         }
         
-        NSLog("[iLab-zip FinderSync] Opening URL: \(url.absoluteString)")
-        NSWorkspace.shared.open(url)
+        NSLog("[iLab-zip FinderSync] Opening URL: \(FinderSyncLogFormatter.commandSummary(action: action, fileCount: files.count, hasDestination: dest != nil))")
+        if !NSWorkspace.shared.open(url) {
+            NSLog("[iLab-zip FinderSync] Failed to open main app")
+        }
     }
     
     // MARK: - 工具
@@ -153,4 +150,3 @@ class FinderSyncExtension: FIFinderSync {
         return false
     }
 }
-

@@ -28,11 +28,21 @@
 - 🗂️ **WinRAR 风格浏览器** — 双栏文件浏览，左侧目录树 + 右侧文件列表
 - 📦 **广泛格式支持** — 7z、ZIP、RAR、TAR、GZ、BZ2、XZ、ISO、DMG、CAB、ARJ、LZH、WIM 等
 - 🔐 **AES-256 加密** — 支持创建/解压加密压缩包，内置密码库（AES-256-GCM 本地加密存储）
-- 📂 **Finder 集成** — 右键菜单快速压缩/解压
+- 📂 **Finder 集成** — 右键菜单快速压缩/解压，支持在偏好设置中添加自定义生效目录
 - 🌐 **多语言支持** — 中文 / English
 - 💾 **分卷压缩** — 支持自定义分卷大小
 - 🎨 **macOS 原生体验** — SwiftUI 构建，支持 Liquid Glass 设计
 - 🆓 **完全免费** — 无广告、无内购、永久免费
+
+### 🧩 Finder 集成说明
+
+如压的 Finder 右键菜单默认在桌面、文稿、下载、外置卷和共享目录中生效。可在应用偏好设置中添加自定义目录，配置保存到：
+
+```text
+~/Library/Application Support/iLab-zip/FinderSyncConfig.json
+```
+
+Finder 扩展与主应用之间使用 UUID + 命名 pasteboard 传递任务，URL Scheme 不直接携带文件路径。配置文件缺失、损坏或不可读时，Finder 扩展会回退到默认目录。
 
 ### 📋 支持格式
 
@@ -63,6 +73,10 @@ xcodegen generate
 # 打开 Xcode 编译
 open iLab-zip.xcodeproj
 ```
+
+### 📝 版本说明
+
+查看 [RELEASE_NOTES.md](RELEASE_NOTES.md) 获取本次 Finder 集成稳定性更新的详细说明。
 
 ### 🏗️ 项目结构
 
@@ -101,11 +115,21 @@ Most GUI archive tools for macOS — such as BetterZip, Archiver, and WinZip —
 - 🗂️ **WinRAR-style File Browser** — Dual-pane layout with directory tree & file list
 - 📦 **Extensive Format Support** — 7z, ZIP, RAR, TAR, GZ, BZ2, XZ, ISO, DMG, CAB, and 15+ more
 - 🔐 **AES-256 Encryption** — Create/extract encrypted archives with built-in password vault
-- 📂 **Finder Integration** — Right-click context menu for quick compress/extract
+- 📂 **Finder Integration** — Right-click context menu for quick compress/extract, with configurable monitored folders
 - 🌐 **Multilingual** — Chinese / English
 - 💾 **Split Archives** — Create multi-volume archives with custom sizes
 - 🎨 **Native macOS Experience** — Built with SwiftUI, supports Liquid Glass design
 - 🆓 **Completely Free** — No ads, no in-app purchases, free forever
+
+### 🧩 Finder Integration
+
+iLab-zip enables Finder context menus in Desktop, Documents, Downloads, external volumes, and the shared user directory by default. Custom monitored folders can be added in Preferences. The configuration is stored at:
+
+```text
+~/Library/Application Support/iLab-zip/FinderSyncConfig.json
+```
+
+The Finder extension hands work to the main app through a UUID and named pasteboard, so file paths are not embedded directly in the URL scheme. If the configuration file is missing, invalid, or unreadable, the extension falls back to the default folders.
 
 ### 📋 Supported Formats
 
@@ -136,6 +160,10 @@ xcodegen generate
 # Open in Xcode and build
 open iLab-zip.xcodeproj
 ```
+
+### 📝 Release Notes
+
+See [RELEASE_NOTES.md](RELEASE_NOTES.md) for details about the Finder integration stability update.
 
 ---
 

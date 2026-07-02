@@ -72,13 +72,10 @@ struct ArchiveWindowView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .openArchive)) { notification in
             if let url = notification.object as? URL {
-                // 用 UUID 去重：同一通知只处理一次
-                let notifID = ObjectIdentifier(notification as AnyObject)
-                let key = "\(url.path)_\(Date().timeIntervalSince1970)"
                 guard ArchiveWindowView.lastOpenID != url.path || !viewModel.isLoading else { return }
                 ArchiveWindowView.lastOpenID = url.path
                 
-                NSLog("[iLab-zip] Processing openArchive: %@", url.path)
+                NSLog("[iLab-zip] Processing openArchive: %@", FinderSyncLogFormatter.itemSummary([url]))
                 if viewModel.engine == nil, let engine = appState.engine {
                     viewModel.setEngine(engine)
                 }
@@ -87,7 +84,11 @@ struct ArchiveWindowView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .finderExtensionAction)) { notification in
             if let url = notification.object as? URL {
-                NSLog("[iLab-zip] Received finderExtensionAction: %@", url.absoluteString)
+                if let command = FinderExtensionCommand(url: url) {
+                    NSLog("[iLab-zip] Received finderExtensionAction: %@", FinderSyncLogFormatter.commandSummary(action: command.action, fileCount: command.files.count, hasDestination: command.dest != nil))
+                } else {
+                    NSLog("[iLab-zip] Received unsupported finderExtensionAction")
+                }
                 appState.handleFinderExtensionURL(url)
             }
         }
@@ -261,7 +262,7 @@ struct ArchiveWindowView: View {
         
         // 获取选中文件的路径
         let selected = getSelectedPaths()
-        NSLog("[iLab-zip] extractAll to: %@, selected: %d files", dest.path, selected.count)
+        NSLog("[iLab-zip] extractAll: hasDestination=true, selected=%d files", selected.count)
         performExtraction(engine: engine, archiveURL: archiveURL, destination: dest, selectedPaths: selected)
     }
     
@@ -281,7 +282,7 @@ struct ArchiveWindowView: View {
         panel.begin { response in
             guard response == .OK, let dest = panel.url else { return }
             let selected = self.getSelectedPaths()
-            NSLog("[iLab-zip] extractToLocation to: %@, selected: %d files", dest.path, selected.count)
+            NSLog("[iLab-zip] extractToLocation: hasDestination=true, selected=%d files", selected.count)
             self.performExtraction(engine: engine, archiveURL: archiveURL, destination: dest, selectedPaths: selected)
         }
     }
@@ -313,7 +314,7 @@ struct ArchiveWindowView: View {
                 case .completed:
                     viewModel.isLoading = false
                     NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: destination.path)
-                    NSLog("[iLab-zip] Extract completed to: %@", destination.path)
+                    NSLog("[iLab-zip] Extract completed: hasDestination=true")
                     
                 case .failed(let error):
                     viewModel.isLoading = false
@@ -354,7 +355,7 @@ struct ArchiveWindowView: View {
         panel.begin { response in
             guard response == .OK, !panel.urls.isEmpty else { return }
             let filesToAdd = panel.urls
-            NSLog("[iLab-zip] Adding %d items to archive: %@", filesToAdd.count, archiveURL.path)
+            NSLog("[iLab-zip] Adding %@ to archive", FinderSyncLogFormatter.itemSummary(filesToAdd))
             
             Task { @MainActor in
                 viewModel.isLoading = true

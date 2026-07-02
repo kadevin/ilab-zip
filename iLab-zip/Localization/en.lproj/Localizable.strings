@@ -57,6 +57,9 @@
 // Settings
 "settings.language" = "Language";
 "settings.language.system" = "System Default";
+"settings.finderDirectories" = "Finder Context Menu Folders";
+"settings.finderDirectories.empty" = "No custom folders added";
+"settings.finderDirectories.add" = "Add Folder";
 
 // Vault
 "vault.noLabel" = "No label";

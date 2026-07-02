@@ -17,7 +17,7 @@ struct iLabZipApp: App {
                         appState.handleFinderExtensionURL(url)
                     } else {
                         // 文件打开 — 通过通知分发给 ArchiveWindowView
-                        NSLog("[iLab-zip] onOpenURL file: %@", url.path)
+                        NSLog("[iLab-zip] onOpenURL file: %@", FinderSyncLogFormatter.itemSummary([url]))
                         NotificationCenter.default.post(name: .openArchive, object: url)
                     }
                 }
@@ -77,17 +77,27 @@ final class AppState: ObservableObject {
     
     /// 处理来自 Finder 扩展的 URL 命令
     func handleFinderExtensionURL(_ url: URL) {
-        print("[iLab-zip] Received Finder extension URL: \(url.absoluteString)")
-        
-        let action = url.host ?? ""
-        let params = URLComponents(url: url, resolvingAgainstBaseURL: false)
-        let files = params?.queryItems?.filter { $0.name == "file" }.compactMap {
-            $0.value?.removingPercentEncoding
-        } ?? []
-        let dest = params?.queryItems?.first(where: { $0.name == "dest" })?.value?.removingPercentEncoding
-        
-        print("[iLab-zip] Action: \(action), Files: \(files), Dest: \(dest ?? "nil")")
-        
+        guard let command = FinderExtensionCommand(url: url) else {
+            print("[iLab-zip] Ignoring unsupported Finder extension URL")
+            return
+        }
+
+        guard let id = command.handoffID else {
+            print("[iLab-zip] Ignoring Finder extension handoff without id")
+            return
+        }
+
+        do {
+            let handoff = try FinderExtensionHandoffStore().readAndDelete(id: id)
+            handleFinderExtensionCommand(action: handoff.action, files: handoff.files, dest: handoff.dest)
+        } catch {
+            print("[iLab-zip] Failed to read Finder extension handoff: \(error.localizedDescription)")
+        }
+    }
+
+    private func handleFinderExtensionCommand(action: String, files: [String], dest: String?) {
+        print("[iLab-zip] Finder extension action: \(action), fileCount: \(files.count), hasDest: \(dest != nil)")
+
         switch action {
         case "extract":
             for file in files {
@@ -133,7 +143,7 @@ final class AppState: ObservableObject {
             return
         }
         
-        print("[iLab-zip] Extracting \(archiveURL.lastPathComponent) to \(destinationURL.path)")
+        print("[iLab-zip] Extracting \(FinderSyncLogFormatter.itemSummary([archiveURL])), hasDestination=true")
         
         Task {
             let stream = engine.extract(archive: archiveURL, to: destinationURL)
@@ -141,9 +151,10 @@ final class AppState: ObservableObject {
             for await progress in stream {
                 lastProgress = progress
             }
+            let finalPhase = lastProgress?.phase
             
             await MainActor.run {
-                if case .failed(let err) = lastProgress?.phase {
+                if case .failed(let err) = finalPhase {
                     self.showNotification(title: "解压失败", body: err.localizedDescription)
                 } else {
                     self.showNotification(title: "解压完成", body: archiveURL.lastPathComponent)
@@ -174,7 +185,7 @@ final class AppState: ObservableObject {
         }
         let outputURL = firstFile.deletingLastPathComponent().appendingPathComponent(outputName)
         
-        NSLog("[iLab-zip] Compressing %@ to %@, split=%d", files.map { $0.lastPathComponent }.description, outputURL.path, isSplit ? 1 : 0)
+        NSLog("[iLab-zip] Compressing %@, split=%d", FinderSyncLogFormatter.itemSummary(files), isSplit ? 1 : 0)
         
         var options = CompressionOptions(format: archiveFormat, level: 5)
         if isSplit {
@@ -187,9 +198,10 @@ final class AppState: ObservableObject {
             for await progress in stream {
                 lastProgress = progress
             }
+            let finalPhase = lastProgress?.phase
             
             await MainActor.run {
-                if case .failed(let err) = lastProgress?.phase {
+                if case .failed(let err) = finalPhase {
                     self.showNotification(title: "压缩失败", body: err.localizedDescription)
                 } else {
                     self.showNotification(title: "压缩完成", body: outputURL.lastPathComponent)
@@ -209,4 +221,3 @@ final class AppState: ObservableObject {
         alert.runModal()
     }
 }
-

@@ -10,7 +10,7 @@ final class PasswordVaultTests: XCTestCase {
     }
     
     func testAddAndRetrievePassword() throws {
-        let entry = try vault.addPassword(label: "Test", plaintext: "mypassword123")
+        _ = try vault.addPassword(label: "Test", plaintext: "mypassword123")
         
         let all = try vault.allPasswords()
         XCTAssertEqual(all.count, 1)
@@ -40,7 +40,7 @@ final class PasswordVaultTests: XCTestCase {
     
     func testPasswordsOrderedByUsage() throws {
         let entry1 = try vault.addPassword(label: "Old", plaintext: "pass1")
-        let entry2 = try vault.addPassword(label: "New", plaintext: "pass2")
+        _ = try vault.addPassword(label: "New", plaintext: "pass2")
         
         // 标记 entry1 为刚使用过
         try vault.markUsed(id: entry1.id!)

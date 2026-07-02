@@ -74,7 +74,7 @@ final class ArchiveWindowViewModel: ObservableObject {
             return
         }
         
-        NSLog("[iLab-zip] Opening archive: %@", url.path)
+        NSLog("[iLab-zip] Opening archive: %@", FinderSyncLogFormatter.itemSummary([url]))
         
         // 自动尝试密码
         let autoTry = PasswordAutoTry(engine: engine)
@@ -116,7 +116,7 @@ final class ArchiveWindowViewModel: ObservableObject {
         isLoading = true
         
         do {
-            print("[iLab-zip] Calling engine.listContents for: \(url.path)")
+            print("[iLab-zip] Calling engine.listContents for \(FinderSyncLogFormatter.itemSummary([url]))")
             let result = try await engine.listContents(of: url, password: password)
             print("[iLab-zip] listContents returned \(result.count) entries")
             self.entries = result
